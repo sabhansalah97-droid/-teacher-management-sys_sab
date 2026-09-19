@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نظام إدارة المدرسين</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#f4f7fb;color:#1f2937}
+header{background:#173b6c;color:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
+header h1{font-size:21px;margin:0}.container{max-width:1200px;margin:auto;padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 3px 14px #0000000d;border:1px solid #e5eaf1}
+.stat{font-size:28px;font-weight:bold;color:#173b6c;margin-top:8px}.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:16px}.tab,button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-size:14px}.tab{background:#e6edf7}.tab.active,button.primary{background:#173b6c;color:white}button{background:#e9eef5}button.danger{background:#b42318;color:#fff}
+section{display:none}.active-section{display:block}.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}label{font-size:13px;color:#526070}input,select{width:100%;padding:10px;border:1px solid #ccd5e0;border-radius:8px;margin-top:5px;font:inherit}table{width:100%;border-collapse:collapse;margin-top:15px;background:#fff}th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:center}th{background:#eef3f9}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.notice{padding:12px;border-radius:10px;background:#fff8e1;border:1px solid #f1d37a;margin-bottom:12px}
+@media(max-width:600px){header h1{font-size:17px}.container{padding:12px}th,td{padding:7px;font-size:12px}}
+@media print{header,.tabs,.actions,.no-print{display:none!important}body{background:white}.card{box-shadow:none;border:0}}
+</style>
+</head>
+<body>
+<header><h1>📚 نظام إدارة المدرسين</h1><span id="today"></span></header>
+<div class="container">
+<div class="tabs">
+<button class="tab active" onclick="show('dashboard',this)">الرئيسية</button>
+<button class="tab" onclick="show('students',this)">الطلاب</button>
+<button class="tab" onclick="show('attendance',this)">الحضور</button>
+<button class="tab" onclick="show('grades',this)">الدرجات</button>
+<button class="tab" onclick="show('classes',this)">الصفوف والشعب</button>
+<button class="tab" onclick="show('reports',this)">التقارير والطباعة</button>
+</div>
+
+<section id="dashboard" class="active-section">
+<div class="grid">
+<div class="card">👨‍🎓 الطلاب<div class="stat" id="sStudents">0</div></div>
+<div class="card">🏫 الصفوف<div class="stat" id="sClasses">0</div></div>
+<div class="card">👥 الشعب<div class="stat" id="sSections">0</div></div>
+<div class="card">⚠️ غيابات اليوم<div class="stat" id="sAbsences">0</div></div>
+</div>
+<div class="card" style="margin-top:15px"><h3>مرحباً بك</h3><p>هذا إصدار أولي يعمل مباشرة داخل المتصفح ويحفظ البيانات على هذا الجهاز. سنحوّله لاحقاً إلى نظام سحابي متعدد المستخدمين عند نشره.</p></div>
+</section>
+
+<section id="students">
+<div class="card"><h2>إضافة طالب</h2>
+<div class="form">
+<label>اسم الطالب<input id="studentName"></label>
+<label>الصف<input id="studentClass"></label>
+<label>الشعبة<input id="studentSection"></label>
+</div>
+<div class="actions"><button class="primary" onclick="addStudent()">إضافة الطالب</button></div></div>
+<div class="card"><h2>قائمة الطلاب</h2><div id="studentsTable"></div></div>
+</section>
+
+<section id="attendance">
+<div class="card"><h2>تسجيل الحضور والغياب</h2>
+<label>التاريخ<input type="date" id="attDate"></label>
+<div id="attendanceTable"></div>
+<div class="actions"><button class="primary" onclick="saveAttendance()">حفظ الحضور</button></div></div>
+</section>
+
+<section id="grades">
+<div class="card"><h2>الدرجات</h2>
+<label>نوع الدرجة<select id="gradeType"><option>يومية</option><option>شهرية</option><option>نصف السنة</option><option>نهائية</option></select></label>
+<div id="gradesTable"></div>
+<div class="actions"><button class="primary" onclick="saveGrades()">حفظ الدرجات</button></div></div>
+</section>
+
+<section id="classes">
+<div class="card"><h2>الصفوف والشعب</h2>
+<div class="form">
+<label>اسم الصف<input id="className" placeholder="مثال: الأول المتوسط"></label>
+<label>عدد الشعب<input id="sectionCount" type="number" min="1" value="1"></label>
+</div><div class="actions"><button class="primary" onclick="addClass()">إضافة</button></div>
+<div id="classesTable"></div></div>
+</section>
+
+<section id="reports">
+<div class="card"><h2>التقارير</h2><p>يمكن طباعة الصفحة الحالية أو حفظها كـ PDF من نافذة الطباعة.</p>
+<div class="actions"><button class="primary" onclick="window.print()">🖨️ طباعة / حفظ PDF</button><button onclick="exportData()">⬇️ تصدير البيانات JSON</button><button onclick="clearAll()" class="danger">حذف كل البيانات</button></div>
+</div>
+</section>
+</div>
+
+<script>
+const KEY='teacherSystemV1';
+let data=JSON.parse(localStorage.getItem(KEY)||'{"students":[],"classes":[],"attendance":{},"grades":{}}');
+const today=new Date().toISOString().slice(0,10);
+document.getElementById('today').textContent=today;
+document.getElementById('attDate').value=today;
+
+function save(){localStorage.setItem(KEY,JSON.stringify(data));renderAll()}
+function show(id,btn){document.querySelectorAll('section').forEach(x=>x.classList.remove('active-section'));document.getElementById(id).classList.add('active-section');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');renderAll()}
+function addStudent(){
+ const name=document.getElementById('studentName').value.trim(); if(!name)return alert('اكتب اسم الطالب');
+ data.students.push({id:Date.now(),name,cls:document.getElementById('studentClass').value,sec:document.getElementById('studentSection').value});
+ document.getElementById('studentName').value='';save();
+}
+function delStudent(id){data.students=data.students.filter(s=>s.id!==id);save()}
+function addClass(){
+ const name=document.getElementById('className').value.trim();if(!name)return alert('اكتب اسم الصف');
+ data.classes.push({id:Date.now(),name,count:+document.getElementById('sectionCount').value||1});save();
+}
+function delClass(id){data.classes=data.classes.filter(x=>x.id!==id);save()}
+function renderStudents(){
+ const rows=data.students.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.name)}</td><td>${esc(s.cls)}</td><td>${esc(s.sec)}</td><td><button class="danger" onclick="delStudent(${s.id})">حذف</button></td></tr>`).join('');
+ document.getElementById('studentsTable').innerHTML=`<table><tr><th>#</th><th>الاسم</th><th>الصف</th><th>الشعبة</th><th>إجراء</th></tr>${rows||'<tr><td colspan="5">لا توجد بيانات</td></tr>'}</table>`;
+}
+function renderAttendance(){
+ const d=document.getElementById('attDate').value||today, a=data.attendance[d]||{};
+ document.getElementById('attendanceTable').innerHTML=`<table><tr><th>الطالب</th><th>الحالة</th></tr>${data.students.map(s=>`<tr><td>${esc(s.name)}</td><td><select data-att="${s.id}"><option value="present" ${a[s.id]!=='absent'?'selected':''}>حاضر</option><option value="absent" ${a[s.id]==='absent'?'selected':''}>غائب</option></select></td></tr>`).join('')||'<tr><td colspan="2">أضف الطلاب أولاً</td></tr>'}</table>`;
+}
+function saveAttendance(){const d=document.getElementById('attDate').value,a={};document.querySelectorAll('[data-att]').forEach(x=>a[x.dataset.att]=x.value);data.attendance[d]=a;save();alert('تم حفظ الحضور')}
+function renderGrades(){
+ const type=document.getElementById('gradeType').value, g=data.grades[type]||{};
+ document.getElementById('gradesTable').innerHTML=`<table><tr><th>الطالب</th><th>الدرجة</th></tr>${data.students.map(s=>`<tr><td>${esc(s.name)}</td><td><input type="number" min="0" max="100" data-grade="${s.id}" value="${g[s.id]??''}"></td></tr>`).join('')||'<tr><td colspan="2">أضف الطلاب أولاً</td></tr>'}</table>`;
+}
+function saveGrades(){const type=document.getElementById('gradeType').value,g={};document.querySelectorAll('[data-grade]').forEach(x=>g[x.dataset.grade]=x.value);data.grades[type]=g;save();alert('تم حفظ الدرجات')}
+function renderClasses(){document.getElementById('classesTable').innerHTML=`<table><tr><th>الصف</th><th>عدد الشعب</th><th>إجراء</th></tr>${data.classes.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.count}</td><td><button class="danger" onclick="delClass(${x.id})">حذف</button></td></tr>`).join('')||'<tr><td colspan="3">لا توجد صفوف</td></tr>'}</table>`}
+function renderAll(){
+ document.getElementById('sStudents').textContent=data.students.length;
+ document.getElementById('sClasses').textContent=data.classes.length;
+ document.getElementById('sSections').textContent=data.classes.reduce((a,x)=>a+x.count,0);
+ document.getElementById('sAbsences').textContent=Object.values(data.attendance[today]||{}).filter(x=>x==='absent').length;
+ renderStudents();renderAttendance();renderGrades();renderClasses();
+}
+function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='teacher-system-data.json';a.click()}
+function clearAll(){if(confirm('هل تريد حذف جميع البيانات؟')){data={students:[],classes:[],attendance:{},grades:{}};save()}}
+function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+document.getElementById('attDate').addEventListener('change',renderAttendance);
+document.getElementById('gradeType').addEventListener('change',renderGrades);
+renderAll();
+</script>
+</body>
+</html>
